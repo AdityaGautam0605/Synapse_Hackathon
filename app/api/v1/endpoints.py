@@ -10,7 +10,7 @@ from app.services.xgb_service import predict_tabular
 from app.services.lstm_service import predict_sequence
 from app.services.ensemble_service import fuse_predictions
 
-# Optional services (don’t fail if teammate didn’t implement them)
+# Optional services
 try:
     from app.services import shap_service, rag_service
 except Exception:
@@ -34,7 +34,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
     payload = data.model_dump()
 
     # ----------------------------
-    # 1. Save current session
+    # 1. Save current raw session
     # ----------------------------
     session = PlayerSession(
         athlete_id=payload.get("athlete_id"),
@@ -96,7 +96,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
     latest_row.pop("injury_occurred", None)
 
     # ----------------------------
-    # 5. Safe Prediction Block
+    # 5. Prediction Block
     # ----------------------------
     try:
         xgb_prob = predict_tabular(latest_row)
@@ -106,10 +106,9 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
 
         final_risk = fuse_predictions(xgb_prob, lstm_prob)
         risk_level = classify_risk(final_risk)
+        alert = final_risk >= 0.7
 
-        # ----------------------------
-        # 6. Persist Predictions
-        # ----------------------------
+        # Persist predictions
         session.predicted_risk = final_risk
         session.xgb_risk = xgb_prob
         session.lstm_risk = lstm_prob
@@ -122,6 +121,30 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
             "error": "Prediction failed",
             "details": str(e)
         }
+
+    # ----------------------------
+    # 6. Risk Trend Detection
+    # ----------------------------
+    recent_sessions = (
+        db.query(PlayerSession)
+        .filter(PlayerSession.athlete_id == payload.get("athlete_id"))
+        .order_by(PlayerSession.id.desc())
+        .limit(3)
+        .all()
+    )
+
+    previous_risks = [
+        s.predicted_risk for s in recent_sessions
+        if s.predicted_risk is not None
+    ]
+
+    trend = "stable"
+
+    if len(previous_risks) >= 2:
+        if previous_risks[0] > previous_risks[1]:
+            trend = "increasing"
+        elif previous_risks[0] < previous_risks[1]:
+            trend = "decreasing"
 
     # ----------------------------
     # 7. Optional Explainability + Advice
@@ -140,9 +163,14 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
         except Exception:
             advice = None
 
+    # ----------------------------
+    # 8. Final Response
+    # ----------------------------
     return {
         "injury_risk": final_risk,
         "risk_level": risk_level,
+        "alert": alert,
+        "risk_trend": trend,
         "xgb_risk": xgb_prob,
         "lstm_risk": lstm_prob,
         "shap_values": explanation,
