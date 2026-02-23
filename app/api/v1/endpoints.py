@@ -130,10 +130,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
     advice = None
 
     if shap_service is not None:
-        try:
-            explanation = shap_service.explain(latest_row)
-        except Exception:
-            explanation = None
+        explanation = shap_service.explain(latest_row)
 
     if rag_service is not None:
         try:
