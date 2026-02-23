@@ -47,3 +47,8 @@ class PlayerSession(Base):
     injury_occurred = Column(Integer, nullable=True)
 
     timestamp = Column(DateTime, default=datetime.utcnow)
+    #NEW COLUMNS
+    predicted_risk = Column(Float, nullable= True)
+    xgb_risk = Column(Float, nullable= True)
+    lstm_risk = Column (Float, nullable = True)
+    risk_level = Column (String, nullable= True)

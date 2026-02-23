@@ -19,6 +19,7 @@ except Exception:
 
 router = APIRouter()
 
+
 def classify_risk(score: float) -> str:
     if score < 0.35:
         return "Low"
@@ -29,6 +30,7 @@ def classify_risk(score: float) -> str:
 
 @router.post("/ml/predict", tags=["ml"])
 def predict(data: SensorInput, db: Session = Depends(get_db)):
+
     payload = data.model_dump()
 
     # ----------------------------
@@ -82,30 +84,47 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
     # ----------------------------
     # 3. Convert to DataFrame
     # ----------------------------
-    df = pd.DataFrame([h.__dict__ for h in history]).drop(columns=["_sa_instance_state"])
+    df = pd.DataFrame([h.__dict__ for h in history]).drop(
+        columns=["_sa_instance_state"]
+    )
 
     # ----------------------------
     # 4. Feature Engineering
     # ----------------------------
     engineered = build_features(df)
-
     latest_row = engineered.iloc[-1].to_dict()
     latest_row.pop("injury_occurred", None)
 
     # ----------------------------
-    # 5–8. Prediction
+    # 5. Safe Prediction Block
     # ----------------------------
     try:
         xgb_prob = predict_tabular(latest_row)
+
         seq = payload.get("sequence")
         lstm_prob = predict_sequence(seq) if seq is not None else 0.5
+
         final_risk = fuse_predictions(xgb_prob, lstm_prob)
         risk_level = classify_risk(final_risk)
+
+        # ----------------------------
+        # 6. Persist Predictions
+        # ----------------------------
+        session.predicted_risk = final_risk
+        session.xgb_risk = xgb_prob
+        session.lstm_risk = lstm_prob
+        session.risk_level = risk_level
+
+        db.commit()
+
     except Exception as e:
-        return {"error": "Prediction failed", "details": str(e)}
+        return {
+            "error": "Prediction failed",
+            "details": str(e)
+        }
 
     # ----------------------------
-    # 9. Optional explainability + advice
+    # 7. Optional Explainability + Advice
     # ----------------------------
     explanation = None
     advice = None
@@ -119,7 +138,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
     if rag_service is not None:
         try:
             advice = rag_service.get_recovery_advice(
-                f"Athlete risk score {final_risk} ({risk_level}). Key features: {list(latest_row.keys())[:10]}"
+                f"Athlete risk score {final_risk} ({risk_level})."
             )
         except Exception:
             advice = None
