@@ -1,0 +1,15 @@
+{
+  "users": {
+    "43590a67-832b-4c66-9af9-284a704e7c29": {
+      "id": "43590a67-832b-4c66-9af9-284a704e7c29",
+      "name": "string",
+      "email": "user@example.com",
+      "password_hash": "$2b$12$6yCvdLpNkw4wEYCeRtNuN.lWQaTJ7frJzUo695ULKTBdIbSs4JPJy",
+      "role": "coach"
+    }
+  },
+  "athletes": {},
+  "biometrics": {},
+  "predictions": {},
+  "wearables": {}
+}

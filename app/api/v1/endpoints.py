@@ -9,6 +9,8 @@ from app.services.feature_pipeline import build_features
 from app.services.xgb_service import predict_tabular
 from app.services.lstm_service import predict_sequence
 from app.services.ensemble_service import fuse_predictions
+from app.services.langchain_service import generate_recovery_advice
+
 
 # Optional services
 try:
@@ -155,14 +157,11 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
     if shap_service is not None:
         explanation = shap_service.explain(latest_row)
 
-    if rag_service is not None:
-        try:
-            advice = rag_service.get_recovery_advice(
-                f"Athlete risk score {final_risk} ({risk_level})."
-            )
-        except Exception:
-            advice = None
-
+    advice = generate_recovery_advice(
+    final_risk,
+    risk_level,
+    explanation
+)
     # ----------------------------
     # 8. Final Response
     # ----------------------------
