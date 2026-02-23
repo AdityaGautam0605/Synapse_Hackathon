@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.schemas import SensorInput
+from app.schemas.request import SensorInput
 from app.services import (
     feature_service,
     xgb_service,
