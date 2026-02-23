@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
-from app.schemas.auth import SignupRequest, LoginRequest, TokenResponse, UserPublic
+from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.security import OAuth2PasswordRequestForm
+
+from app.schemas.auth import SignupRequest, TokenResponse, UserPublic
 from app.core.security import hash_password, verify_password, create_access_token
 from app.services.store import store
-from fastapi import Depends
 from app.core.deps import get_current_user
 
 router = APIRouter()
@@ -19,13 +20,15 @@ def signup(req: SignupRequest) -> UserPublic:
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(req: LoginRequest) -> TokenResponse:
-    user = store.get_user_by_email(req.email)
-    if not user or not verify_password(req.password, user["password_hash"]):
+def login(form_data: OAuth2PasswordRequestForm = Depends()) -> TokenResponse:
+    # OAuth2 uses the field name "username" (you can put email here)
+    user = store.get_user_by_email(form_data.username)
+    if not user or not verify_password(form_data.password, user["password_hash"]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     token = create_access_token(subject=user["id"], role=user["role"])
     return TokenResponse(access_token=token, role=user["role"])
+
 
 @router.get("/me", response_model=UserPublic)
 def me(user: UserPublic = Depends(get_current_user)) -> UserPublic:

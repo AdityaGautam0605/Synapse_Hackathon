@@ -1,27 +1,41 @@
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
-
-from jose import jwt
-from passlib.context import CryptContext
+import bcrypt
+import hashlib
+from datetime import datetime, timedelta
+from jose import jwt, JWTError
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _pw_digest(password: str) -> bytes:
+    return hashlib.sha256(password.encode("utf-8")).digest()
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    digest = _pw_digest(password)
+    return bcrypt.hashpw(digest, bcrypt.gensalt()).decode("utf-8")
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(password: str, password_hash: str) -> bool:
+    digest = _pw_digest(password)
+    return bcrypt.checkpw(digest, password_hash.encode("utf-8"))
 
 
-def create_access_token(subject: str, role: str, expires_minutes: Optional[int] = None) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes or settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload: Dict[str, Any] = {"sub": subject, "role": role, "exp": expire}
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+def create_access_token(subject: str, role: str) -> str:
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload = {"sub": str(subject), "role": role, "exp": expire}
+    return jwt.encode(
+        payload,
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
 
 
-def decode_token(token: str) -> Dict[str, Any]:
-    return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+def decode_token(token: str) -> dict:
+    try:
+        return jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+        )
+    except JWTError as e:
+        raise ValueError("Invalid or expired token") from e

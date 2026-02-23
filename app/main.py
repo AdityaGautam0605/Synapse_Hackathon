@@ -12,7 +12,6 @@ app = FastAPI(title="Kinetiq API", version=settings.VERSION)
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
-
 @app.on_event("startup")
 def startup_event():
     registry.load_models()
