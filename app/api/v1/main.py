@@ -8,8 +8,7 @@ from app.api.v1.wearables import router as wearables_router
 from app.api.v1.predictions import router as predictions_router
 from app.api.v1.assistant import router as assistant_router
 
-from app.api.v1.endpoints import router as core_router  # your /predict
-
+from app.api.v1.endpoints import router as core_router 
 router = APIRouter()
 
 router.include_router(auth_router, prefix="/auth", tags=["auth"])
@@ -20,5 +19,5 @@ router.include_router(wearables_router, prefix="/wearables", tags=["wearables"])
 router.include_router(predictions_router, prefix="/predictions", tags=["predictions"])
 router.include_router(assistant_router, prefix="/assistant", tags=["assistant"])
 
-# keep your teammate's predict endpoint
+
 router.include_router(core_router, tags=["predict"])

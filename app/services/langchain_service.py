@@ -7,7 +7,7 @@ def generate_recovery_advice(risk_score, risk_level, shap_features):
 
     try:
         llm = ChatGroq(
-            model="llama-3.1-8b-instant",   # fast + good
+            model="llama-3.1-8b-instant",  
             temperature=0.3,
             groq_api_key=os.getenv("GROQ_API_KEY"),
         )

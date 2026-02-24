@@ -15,12 +15,12 @@ class ModelRegistry:
         self.lstm_model = None
 
     def load_models(self):
-        # ---- Load XGBoost ----
+        
         self.xgb_model = joblib.load(MODEL_DIR / "xgb_model.pkl")
         self.scaler = joblib.load(MODEL_DIR / "xgb_scaler.pkl")
         self.feature_names = joblib.load(MODEL_DIR / "xgb_features.pkl")
 
-        # ---- Load LSTM ----
+       
         self.lstm_model = FatigueLSTM()
         self.lstm_model.load_state_dict(
             torch.load(MODEL_DIR / "lstm_model.pt", map_location="cpu")

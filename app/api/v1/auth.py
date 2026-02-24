@@ -21,7 +21,7 @@ def signup(req: SignupRequest) -> UserPublic:
 
 @router.post("/login", response_model=TokenResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends()) -> TokenResponse:
-    # OAuth2 uses the field name "username" (you can put email here)
+   
     user = store.get_user_by_email(form_data.username)
     if not user or not verify_password(form_data.password, user["password_hash"]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")

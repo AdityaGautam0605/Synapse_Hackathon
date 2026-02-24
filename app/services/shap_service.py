@@ -10,7 +10,7 @@ explainer = shap.TreeExplainer(model)
 
 
 def explain(features_dict, top_k: int = 5):
-    # Build ordered dataframe
+    
     row = []
     for col in feature_names:
         row.append(features_dict.get(col, 0.0))
@@ -21,7 +21,7 @@ def explain(features_dict, top_k: int = 5):
 
     shap_values = explainer.shap_values(df)
 
-    # For binary classification
+   
     if isinstance(shap_values, list):
         shap_values = shap_values[1]
 
@@ -36,13 +36,13 @@ def explain(features_dict, top_k: int = 5):
             "abs_impact": abs(float(value))
         })
 
-    # Sort by absolute impact
+    
     results.sort(key=lambda x: x["abs_impact"], reverse=True)
 
-    # Keep top_k
+    
     top_features = results[:top_k]
 
-    # Add direction field
+   
     formatted = []
     for item in top_features:
         formatted.append({

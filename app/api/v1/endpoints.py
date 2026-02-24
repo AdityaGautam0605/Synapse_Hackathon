@@ -12,7 +12,7 @@ from app.services.ensemble_service import fuse_predictions
 from app.services.langchain_service import generate_recovery_advice
 
 
-# Optional services
+
 try:
     from app.services import shap_service, rag_service
 except Exception:
@@ -35,9 +35,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
 
     payload = data.model_dump()
 
-    # ----------------------------
-    # 1. Save current raw session
-    # ----------------------------
+   
     session = PlayerSession(
         athlete_id=payload.get("athlete_id"),
         heart_rate=payload.get("heart_rate"),
@@ -67,9 +65,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
     db.add(session)
     db.commit()
 
-    # ----------------------------
-    # 2. Fetch athlete history
-    # ----------------------------
+   
     history = (
         db.query(PlayerSession)
         .filter(PlayerSession.athlete_id == payload.get("athlete_id"))
@@ -83,23 +79,16 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
             "sessions_recorded": len(history),
         }
 
-    # ----------------------------
-    # 3. Convert to DataFrame
-    # ----------------------------
+   
     df = pd.DataFrame([h.__dict__ for h in history]).drop(
         columns=["_sa_instance_state"]
     )
 
-    # ----------------------------
-    # 4. Feature Engineering
-    # ----------------------------
     engineered = build_features(df)
     latest_row = engineered.iloc[-1].to_dict()
     latest_row.pop("injury_occurred", None)
 
-    # ----------------------------
-    # 5. Prediction Block
-    # ----------------------------
+  
     try:
         xgb_prob = predict_tabular(latest_row)
 
@@ -110,7 +99,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
         risk_level = classify_risk(final_risk)
         alert = final_risk >= 0.7
 
-        # Persist predictions
+       
         session.predicted_risk = final_risk
         session.xgb_risk = xgb_prob
         session.lstm_risk = lstm_prob
@@ -124,9 +113,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
             "details": str(e)
         }
 
-    # ----------------------------
-    # 6. Risk Trend Detection
-    # ----------------------------
+   
     recent_sessions = (
         db.query(PlayerSession)
         .filter(PlayerSession.athlete_id == payload.get("athlete_id"))
@@ -148,9 +135,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
         elif previous_risks[0] < previous_risks[1]:
             trend = "decreasing"
 
-    # ----------------------------
-    # 7. Optional Explainability + Advice
-    # ----------------------------
+    
     explanation = None
     advice = None
 
@@ -162,9 +147,7 @@ def predict(data: SensorInput, db: Session = Depends(get_db)):
     risk_level,
     explanation
 )
-    # ----------------------------
-    # 8. Final Response
-    # ----------------------------
+    
     return {
         "injury_risk": final_risk,
         "risk_level": risk_level,

@@ -5,10 +5,10 @@ from typing import List, Optional
 class SensorInput(BaseModel):
     athlete_id: int
 
-    # 30 x 99 pose sequence
+    
     sequence: List[List[float]]
 
-    # Current tabular row
+    
     heart_rate: float
     body_temperature: float
     hydration_level: float

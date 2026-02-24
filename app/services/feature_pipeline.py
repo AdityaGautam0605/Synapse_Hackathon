@@ -2,9 +2,6 @@ import numpy as np
 import pandas as pd
 
 
-# ---------------------------
-# Helper Feature Functions
-# ---------------------------
 
 def compute_acwr(load: np.ndarray, acute_days=7, chronic_days=28):
     acute = pd.Series(load).rolling(acute_days, min_periods=1).mean()
@@ -29,14 +26,11 @@ def compute_fatigue_proxy(load: np.ndarray, decay=0.1):
     return fatigue
 
 
-# ---------------------------
-# Main Feature Builder
-# ---------------------------
 
 def build_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # ---- Detect Load Column ----
+    
     load_candidates = [
         c for c in df.columns
         if "load" in c.lower()
@@ -51,22 +45,22 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
 
     load = df[load_col].fillna(df[load_col].median()).values
 
-    # ---- ACWR ----
+    
     df["acwr"] = compute_acwr(load)
 
-    # ---- Monotony ----
+   
     df["monotony_index"] = compute_monotony(load)
 
-    # ---- Fatigue Proxy ----
+   
     df["fatigue_proxy"] = compute_fatigue_proxy(load)
 
-    # ---- Rolling Means ----
+   
     for w in [3, 7, 14]:
         df[f"load_roll_mean_{w}d"] = (
             pd.Series(load).rolling(w, min_periods=1).mean().values
         )
 
-    # ---- Keep Only Numeric Columns ----
+    
     numeric_cols = df.select_dtypes(
         include=[np.float64, np.float32, np.int64, np.int32]
     ).columns
